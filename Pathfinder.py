@@ -1,9 +1,11 @@
+import heapq
 import numpy as np
 import pygame
 
-from recordtype import recordtype
-from collections import namedtuple
 from pygame.locals import (
+    K_BACKSPACE,
+    K_RETURN,
+    KEYDOWN,
     MOUSEBUTTONUP,
     MOUSEBUTTONDOWN,
     MOUSEMOTION,
@@ -11,7 +13,18 @@ from pygame.locals import (
 )
 
 
-Cell = recordtype("MatrixCell", ["figure", "is_wall", "distance_from_start"])
+class Cell:
+    def __init__(self, figure, is_wall, distance_from_start, coords, visited=False, predecessor=None):
+        self.figure = figure
+        self.is_wall = is_wall
+        self.distance_from_start = distance_from_start
+        self.coords = coords
+        self.visited = visited
+        self.predecessor = predecessor
+    
+
+    def __lt__(self, other_cell):
+        return self.distance_from_start < other_cell.distance_from_start
 
 
 WINDOW_WIDTH = 800
@@ -19,12 +32,19 @@ WINDOW_HEIGHT = 600
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
+GREEN = (0, 255, 0)
 
 
 def setup():
     NUMBER_OF_ROWS = WINDOW_HEIGHT // 10
     NUMBER_OF_COLUMNS = WINDOW_WIDTH // 10
     
+    screen.fill(BLACK)
+    pygame.display.set_caption("Pathfinder")
+
     initialize_matrix(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS)
     draw_grid(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS)
 
@@ -36,6 +56,8 @@ def initialize_matrix(num_rows, num_cols):
 
 
 def draw_grid(num_rows, num_cols):
+    global start_coords, end_coords
+
     MARGIN = 1
     DIMENSION = (WINDOW_WIDTH - MARGIN * num_cols) // num_cols
 
@@ -43,27 +65,110 @@ def draw_grid(num_rows, num_cols):
         for y in range(num_cols):
             rect = pygame.Rect((MARGIN + DIMENSION) * y + MARGIN, (MARGIN + DIMENSION) * x + MARGIN, DIMENSION, DIMENSION)
             pygame.draw.rect(screen, WHITE, rect)
-            matrix[x][y] = Cell(rect.copy(), False, np.inf)
+            matrix[x][y] = Cell(rect.copy(), False, np.inf, (x, y))
+    
+    start_coords = (np.random.randint(0, num_cols), np.random.randint(0, num_rows))
+    end_coords = (np.random.randint(0, num_cols), np.random.randint(0, num_rows))
+    
+    while start_coords == end_coords:
+        end_coords = (np.random.randint(0, num_cols), np.random.randint(0, num_rows))
+
+    start_rect = matrix[start_coords[1]][start_coords[0]].figure
+    end_rect = matrix[end_coords[1]][end_coords[0]].figure
+
+    pygame.draw.rect(screen, BLUE, start_rect)
+    pygame.draw.rect(screen, RED, end_rect)
+
+    matrix[start_coords[1]][start_coords[0]] = Cell(start_rect.copy(), True, 0, start_coords[::-1], visited=True)
+    matrix[end_coords[1]][end_coords[0]] = Cell(end_rect.copy(), False, np.inf, end_coords[::-1])
     
     pygame.display.update()
 
 
-def fill_selected_squares():
+def mark_as_wall():
     position = pygame.mouse.get_pos()
     col = position[0] // 10
     row = position[1] // 10
 
-    matrix[row][col].is_wall = True
-    rect = matrix[row][col].figure
-    pygame.draw.rect(screen, BLACK, rect)
+    if matrix[row][col] != matrix[start_coords[1]][start_coords[0]] and matrix[row][col] != matrix[end_coords[1]][end_coords[0]]:
+        matrix[row][col].is_wall = True
+        rect = matrix[row][col].figure
+        pygame.draw.rect(screen, BLACK, rect)
 
-    pygame.display.update()
+        pygame.display.update()
 
+
+def mark_as_visited(cell, distance, predecessor):
+    cell.distance_from_start = distance
+    cell.visited = True
+    cell.predecessor = predecessor
+
+    if cell != matrix[end_coords[1]][end_coords[0]]:
+        rect = cell.figure
+        pygame.draw.rect(screen, YELLOW, rect)
+
+        pygame.display.update()
+
+        return False
+    
+    return True
+
+
+def highlight_path():
+    current = matrix[end_coords[1]][end_coords[0]].predecessor
+    start = matrix[start_coords[1]][start_coords[0]]
+
+    while current != start:
+        rect = current.figure
+        pygame.draw.rect(screen, GREEN, rect)
+
+        pygame.display.update()
+
+        current = current.predecessor
+
+
+def find_path():
+    queue = [cell for index, cell in np.ndenumerate(matrix)]
+    heapq.heapify(queue)
+    
+    for _ in queue:
+        most_near = heapq.heappop(queue)
+        i, j = most_near.coords
+        new_distance = most_near.distance_from_start + 1
+        above = matrix[i-1][j] if 0 <= i-1 < WINDOW_HEIGHT // 10 else None
+        below = matrix[i+1][j] if 0 <= i+1 < WINDOW_HEIGHT // 10 else None
+        right = matrix[i][j+1] if 0 <= j+1 < WINDOW_WIDTH // 10 else None
+        left = matrix[i][j-1] if 0 <= j-1 < WINDOW_WIDTH // 10 else None
+
+        if above and not above.is_wall and not above.visited:
+            if mark_as_visited(above, new_distance, most_near):
+                break
+        
+        if below and not below.is_wall and not below.visited:
+            if mark_as_visited(below, new_distance, most_near):
+                break
+
+        if right and not right.is_wall and not right.visited:
+            if mark_as_visited(right, new_distance, most_near):
+                break
+
+        if left and not left.is_wall and not left.visited: 
+            if mark_as_visited(left, new_distance, most_near):
+                break
+        
+        if all(value for value in [above != None, below != None, right != None, left != None]):
+            if all(value for value in [above.is_wall, below.is_wall, right.is_wall, left.is_wall]):
+                return
+
+        heapq.heapify(queue)
+    
+    highlight_path()
+    
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 matrix = None
-
-screen.fill(BLACK)
+start_coords = None
+end_coords = None
 
 setup()
 
@@ -81,9 +186,15 @@ while running:
             dragging = True
         
         if dragging and event.type == MOUSEMOTION:
-            fill_selected_squares()
+            mark_as_wall()
         
         if event.type == MOUSEBUTTONUP:
             dragging = False
+        
+        if event.type == KEYDOWN:
+            if event.key == K_RETURN:
+                find_path()
+            if event.key == K_BACKSPACE:
+                setup()
        
 pygame.quit()
