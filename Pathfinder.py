@@ -67,20 +67,23 @@ def draw_grid(num_rows, num_cols):
             pygame.draw.rect(screen, WHITE, rect)
             matrix[x][y] = Cell(rect.copy(), False, np.inf, (x, y))
     
-    start_coords = (np.random.randint(0, num_cols), np.random.randint(0, num_rows))
-    end_coords = (np.random.randint(0, num_cols), np.random.randint(0, num_rows))
+    start_coords = (np.random.randint(0, num_rows), np.random.randint(0, num_cols))
+    end_coords = (np.random.randint(0, num_rows), np.random.randint(0, num_cols))
     
     while start_coords == end_coords:
-        end_coords = (np.random.randint(0, num_cols), np.random.randint(0, num_rows))
+        end_coords = (np.random.randint(0, num_rows), np.random.randint(0, num_cols))
 
-    start_rect = matrix[start_coords[1]][start_coords[0]].figure
-    end_rect = matrix[end_coords[1]][end_coords[0]].figure
+    start_cell = matrix[start_coords[0]][start_coords[1]]
+    end_cell = matrix[end_coords[0]][end_coords[1]]
+
+    start_rect = start_cell.figure
+    end_rect = end_cell.figure
 
     pygame.draw.rect(screen, BLUE, start_rect)
     pygame.draw.rect(screen, RED, end_rect)
 
-    matrix[start_coords[1]][start_coords[0]] = Cell(start_rect.copy(), True, 0, start_coords[::-1], visited=True)
-    matrix[end_coords[1]][end_coords[0]] = Cell(end_rect.copy(), False, np.inf, end_coords[::-1])
+    matrix[start_coords[0]][start_coords[1]] = Cell(start_rect.copy(), True, 0, start_coords, visited=True)
+    matrix[end_coords[0]][end_coords[1]] = Cell(end_rect.copy(), False, np.inf, end_coords)
     
     pygame.display.update()
 
@@ -90,33 +93,39 @@ def mark_as_wall():
     col = position[0] // 10
     row = position[1] // 10
 
-    if matrix[row][col] != matrix[start_coords[1]][start_coords[0]] and matrix[row][col] != matrix[end_coords[1]][end_coords[0]]:
+    start_cell = matrix[start_coords[0]][start_coords[1]]
+    end_cell = matrix[end_coords[0]][end_coords[1]]
+
+    if matrix[row][col] != start_cell and matrix[row][col] != end_cell:
         matrix[row][col].is_wall = True
         rect = matrix[row][col].figure
         pygame.draw.rect(screen, BLACK, rect)
-
+        
         pygame.display.update()
 
 
 def mark_as_visited(cell, distance, predecessor):
+    end_cell = matrix[end_coords[0]][end_coords[1]]
+
     cell.distance_from_start = distance
     cell.visited = True
     cell.predecessor = predecessor
 
-    if cell != matrix[end_coords[1]][end_coords[0]]:
+    if cell != end_cell:
         rect = cell.figure
         pygame.draw.rect(screen, YELLOW, rect)
 
         pygame.display.update()
-
+        
         return False
     
     return True
 
 
 def highlight_path():
-    current = matrix[end_coords[1]][end_coords[0]].predecessor
-    start = matrix[start_coords[1]][start_coords[0]]
+    end_cell = matrix[end_coords[0]][end_coords[1]]
+    current = end_cell.predecessor
+    start = matrix[start_coords[0]][start_coords[1]]
 
     while current != start:
         rect = current.figure
@@ -131,7 +140,7 @@ def find_path():
     queue = [cell for index, cell in np.ndenumerate(matrix)]
     heapq.heapify(queue)
     
-    for _ in queue:
+    while len(queue) > 0:
         most_near = heapq.heappop(queue)
         i, j = most_near.coords
         new_distance = most_near.distance_from_start + 1
