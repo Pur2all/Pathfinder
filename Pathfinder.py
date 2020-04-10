@@ -30,6 +30,9 @@ class Cell:
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
+NUMBER_OF_ROWS = WINDOW_HEIGHT // 10
+NUMBER_OF_COLUMNS = WINDOW_WIDTH // 10
+
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
@@ -39,39 +42,36 @@ GREEN = (0, 255, 0)
 
 
 def setup():
-    NUMBER_OF_ROWS = WINDOW_HEIGHT // 10
-    NUMBER_OF_COLUMNS = WINDOW_WIDTH // 10
-    
     screen.fill(BLACK)
     pygame.display.set_caption("Pathfinder")
 
-    initialize_matrix(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS)
-    draw_grid(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS)
+    initialize_matrix()
+    draw_grid()
 
 
-def initialize_matrix(num_rows, num_cols):
+def initialize_matrix():
     global matrix
 
-    matrix = np.empty((num_rows, num_cols), dtype=Cell)
+    matrix = np.empty((NUMBER_OF_ROWS, NUMBER_OF_COLUMNS), dtype=Cell)
 
 
-def draw_grid(num_rows, num_cols):
+def draw_grid():
     global start_coords, end_coords
 
     MARGIN = 1
-    DIMENSION = (WINDOW_WIDTH - MARGIN * num_cols) // num_cols
+    DIMENSION = (WINDOW_WIDTH - MARGIN * NUMBER_OF_COLUMNS) // NUMBER_OF_COLUMNS
 
-    for x in range(num_rows):
-        for y in range(num_cols):
+    for x in range(NUMBER_OF_ROWS):
+        for y in range(NUMBER_OF_COLUMNS):
             rect = pygame.Rect((MARGIN + DIMENSION) * y + MARGIN, (MARGIN + DIMENSION) * x + MARGIN, DIMENSION, DIMENSION)
             pygame.draw.rect(screen, WHITE, rect)
             matrix[x][y] = Cell(rect.copy(), False, np.inf, (x, y))
     
-    start_coords = (np.random.randint(0, num_rows), np.random.randint(0, num_cols))
-    end_coords = (np.random.randint(0, num_rows), np.random.randint(0, num_cols))
+    start_coords = (np.random.randint(0, NUMBER_OF_ROWS), np.random.randint(0, NUMBER_OF_COLUMNS))
+    end_coords = (np.random.randint(0, NUMBER_OF_ROWS), np.random.randint(0, NUMBER_OF_COLUMNS))
     
     while start_coords == end_coords:
-        end_coords = (np.random.randint(0, num_rows), np.random.randint(0, num_cols))
+        end_coords = (np.random.randint(0, NUMBER_OF_ROWS), np.random.randint(0, NUMBER_OF_COLUMNS))
 
     start_cell = matrix[start_coords[0]][start_coords[1]]
     end_cell = matrix[end_coords[0]][end_coords[1]]
@@ -144,10 +144,10 @@ def find_path():
         most_near = heapq.heappop(queue)
         i, j = most_near.coords
         new_distance = most_near.distance_from_start + 1
-        above = matrix[i-1][j] if 0 <= i-1 < WINDOW_HEIGHT // 10 else None
-        below = matrix[i+1][j] if 0 <= i+1 < WINDOW_HEIGHT // 10 else None
-        right = matrix[i][j+1] if 0 <= j+1 < WINDOW_WIDTH // 10 else None
-        left = matrix[i][j-1] if 0 <= j-1 < WINDOW_WIDTH // 10 else None
+        above = matrix[i-1][j] if 0 <= i-1 < NUMBER_OF_ROWS else None
+        below = matrix[i+1][j] if 0 <= i+1 < NUMBER_OF_ROWS else None
+        right = matrix[i][j+1] if 0 <= j+1 < NUMBER_OF_COLUMNS else None
+        left = matrix[i][j-1] if 0 <= j-1 < NUMBER_OF_COLUMNS else None
 
         if above and not above.is_wall and not above.visited:
             if mark_as_visited(above, new_distance, most_near):
