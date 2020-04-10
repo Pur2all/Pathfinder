@@ -4,7 +4,7 @@ This is my first experiment with pygame, I made a pathfinding viewer that use Di
 ## How to use it:
 - To run it, after you go in the same directory of the project, write in the console: `python3 Pathfinder.py`
 - To make walls: drag with cursor on the grid
-- To reset: press **backspace**
+- To reset the grid: press **backspace**
 - To execute the algorithm: press **enter**
 
 ## How it looks:
