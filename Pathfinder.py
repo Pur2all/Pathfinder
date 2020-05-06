@@ -139,9 +139,15 @@ def highlight_path():
 def find_path():
     queue = [cell for index, cell in np.ndenumerate(matrix)]
     heapq.heapify(queue)
+    found = True
     
     while len(queue) > 0:
         most_near = heapq.heappop(queue)
+        
+        if most_near.distance_from_start == np.inf:
+            found = False
+            break
+
         i, j = most_near.coords
         new_distance = most_near.distance_from_start + 1
         above = matrix[i-1][j] if 0 <= i-1 < NUMBER_OF_ROWS else None
@@ -171,7 +177,8 @@ def find_path():
 
         heapq.heapify(queue)
     
-    highlight_path()
+    if found:
+        highlight_path()
     
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
