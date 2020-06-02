@@ -137,11 +137,11 @@ def highlight_path():
 
 
 def find_path():
-    queue = [cell for index, cell in np.ndenumerate(matrix)]
-    heapq.heapify(queue)
+    start = matrix[start_coords[0]][start_coords[1]]
+    queue = [start]
     found = True
     
-    while len(queue) > 0:
+    while queue:
         most_near = heapq.heappop(queue)
         
         if most_near.distance_from_start == np.inf:
@@ -158,24 +158,27 @@ def find_path():
         if above and not above.is_wall and not above.visited:
             if mark_as_visited(above, new_distance, most_near):
                 break
+            heapq.heappush(queue, above)
         
         if below and not below.is_wall and not below.visited:
             if mark_as_visited(below, new_distance, most_near):
                 break
+            heapq.heappush(queue, below)
 
         if right and not right.is_wall and not right.visited:
             if mark_as_visited(right, new_distance, most_near):
                 break
+            heapq.heappush(queue, right)
 
         if left and not left.is_wall and not left.visited: 
             if mark_as_visited(left, new_distance, most_near):
                 break
+            heapq.heappush(queue, left)
         
         if all(value for value in [above != None, below != None, right != None, left != None]):
             if all(value for value in [above.is_wall, below.is_wall, right.is_wall, left.is_wall]):
                 return
 
-        heapq.heapify(queue)
     
     if found:
         highlight_path()
