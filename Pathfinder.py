@@ -107,17 +107,18 @@ def mark_as_wall():
 def mark_as_visited(cell, distance, predecessor):
     end_cell = matrix[end_coords[0]][end_coords[1]]
 
-    cell.distance_from_start = distance
-    cell.visited = True
-    cell.predecessor = predecessor
+    if distance < cell.distance_from_start:
+        cell.distance_from_start = distance
+        cell.visited = True
+        cell.predecessor = predecessor
 
-    if cell != end_cell:
-        rect = cell.figure
-        pygame.draw.rect(screen, YELLOW, rect)
+        if cell != end_cell:
+            rect = cell.figure
+            pygame.draw.rect(screen, YELLOW, rect)
 
-        pygame.display.update()
-        
-        return False
+            pygame.display.update()
+            
+            return False
     
     return True
 
